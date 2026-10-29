@@ -1,8 +1,13 @@
 #include <memory.h>
+
+#if defined(__aarch64__)
+#include <arm_neon.h>
+#endif
+
 typedef double f64;
 typedef long long i64;
 char dummy;
-f64 q_rsqrt(f64 x) {
+static inline f64 q_rsqrt(f64 x) {
     f64 xhalf = 0.5 * x;
     long long i;
 
@@ -15,3 +20,29 @@ f64 q_rsqrt(f64 x) {
     x = x * (1.5 - xhalf * x * x);
     return x;
 }
+
+#if defined(__aarch64__)
+static double hw_rsqrt_0(double x) { return vrsqrted_f64(x); }
+
+static double hw_rsqrt_1(double x) {
+    double y = vrsqrted_f64(x);
+    y *= vrsqrtsd_f64(x * y, y);
+    return y;
+}
+
+static double hw_rsqrt_2(double x) {          // frsqrte + 뉴턴 2회
+    double y = vrsqrted_f64(x);
+    y *= vrsqrtsd_f64(x * y, y);
+    y *= vrsqrtsd_f64(x * y, y);
+    return y;
+}
+static double hw_rsqrt_3(double x) {          // frsqrte + 뉴턴 3회
+    double y = vrsqrted_f64(x);
+    y *= vrsqrtsd_f64(x * y, y);
+    y *= vrsqrtsd_f64(x * y, y);
+    y *= vrsqrtsd_f64(x * y, y);
+    return y;
+}
+
+
+#endif
